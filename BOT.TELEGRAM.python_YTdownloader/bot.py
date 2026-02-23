@@ -1,47 +1,55 @@
-‎import os
-‎import yt_dlp
-‎from telegram import Update
-‎from telegram.ext import ApplicationBuilder, MessageHandler, ContextTypes, filters
+import os
+import asyncio
+from telegram import Update
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
+import yt_dlp
 
-‎TOKEN = os.getenv("BOT_TOKEN")
-‎DOWNLOAD_PATH = "downloads"
-‎os.makedirs(DOWNLOAD_PATH, exist_ok=True)
-‎
-‎
-‎async def download_video(update: Update, context: ContextTypes.DEFAULT_TYPE):
-‎    url = update.message.text
-‎
-‎    if "youtube.com" not in url and "youtu.be" not in url:
-‎        await update.message.reply_text("Kirim link YouTube yang valid.")
-‎        return
-‎
-‎    await update.message.reply_text("Downloading... ⏳")
-‎
-‎    ydl_opts = {
-‎        'outtmpl': f'{DOWNLOAD_PATH}/%(title)s.%(ext)s',
-‎        'format': 'best',
-‎    }
-‎
-‎    try:
-‎        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-‎            info = ydl.extract_info(url, download=True)
-‎            file_path = ydl.prepare_filename(info)
-‎
-‎        await update.message.reply_video(video=open(file_path, 'rb'))
-‎
-‎        os.remove(file_path)
-‎
-‎    except Exception as e:
-‎        await update.message.reply_text(f"Error: {str(e)}")
-‎
-‎
-‎def main():
-‎    app = ApplicationBuilder().token(TOKEN).build()
-‎    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, download_video))
-‎
-‎    print("YT Downloader Bot Running...")
-‎    app.run_polling()
-‎
-‎
-‎if __name__ == "__main__":
-‎    main()
+TOKEN = os.getenv("BOT_TOKEN")
+
+
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("Kirim link YouTube untuk didownload.")
+
+
+def download_video(url, filename="video.mp4"):
+    ydl_opts = {
+        "outtmpl": filename,
+        "format": "best",
+        "noplaylist": True,
+        "quiet": True,
+    }
+
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        ydl.download([url])
+
+
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    url = update.message.text
+
+    if "http" not in url:
+        await update.message.reply_text("Kirim link yang valid.")
+        return
+
+    await update.message.reply_text("⬇️ Downloading...")
+
+    filename = "video.mp4"
+
+    try:
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(None, download_video, url, filename)
+
+        await update.message.reply_document(document=open(filename, "rb"))
+        os.remove(filename)
+
+    except Exception as e:
+        await update.message.reply_text(f"Error: {e}")
+
+
+if __name__ == "__main__":
+    print("Bot running...")
+    app = ApplicationBuilder().token(TOKEN).build()
+
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+
+    app.run_polling(close_loop=False)
