@@ -1,10 +1,9 @@
 ‎import os
-TOKEN = os.getenv("BOT_TOKEN")
 ‎import yt_dlp
 ‎from telegram import Update
 ‎from telegram.ext import ApplicationBuilder, MessageHandler, ContextTypes, filters
 
-‎
+‎TOKEN = os.getenv("BOT_TOKEN")
 ‎DOWNLOAD_PATH = "downloads"
 ‎os.makedirs(DOWNLOAD_PATH, exist_ok=True)
 ‎
