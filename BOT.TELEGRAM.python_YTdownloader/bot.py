@@ -3,7 +3,19 @@ import asyncio
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
 import yt_dlp
+import time
 
+user_cooldown = {}
+COOLDOWN_TIME = 15  # detik
+user_id = update.message.from_user.id
+now = time.time()
+
+if user_id in user_cooldown:
+    if now - user_cooldown[user_id] < COOLDOWN_TIME:
+        await update.message.reply_text("Tunggu dulu sebelum kirim link lagi.")
+        return
+
+user_cooldown[user_id] = now
 TOKEN = os.getenv("BOT_TOKEN")
 
 
